@@ -1,11 +1,18 @@
 """Logging configuration and utilities."""
 
+import os
+import sys
+parent_dir = os.path.dirname(os.path.abspath(__file__))
+up_dir = parent_dir
+for i in range(3):
+    sys.path.append(up_dir)
+    up_dir = os.path.dirname(up_dir)
 import logging
 import sys
 from pathlib import Path
 from typing import Optional
 
-from .config import get_settings
+from config import get_settings
 
 
 def setup_logging(log_level: Optional[str] = None, log_file: Optional[str] = None) -> None:

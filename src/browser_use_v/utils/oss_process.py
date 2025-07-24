@@ -5,6 +5,14 @@ Utility class for OSS (Object Storage Service) operations.
 Provides simple methods for data operations: upload, read, delete, update.
 """
 import os
+import sys
+parent_dir = os.path.dirname(os.path.abspath(__file__))
+up_dir = parent_dir
+for i in range(3):
+    sys.path.append(up_dir)
+    up_dir = os.path.dirname(up_dir)
+import utils as u
+import os
 import json
 import tempfile
 from typing import Optional, Dict, List, Any, Tuple, Union, BinaryIO, TextIO, IO, AnyStr
@@ -12,7 +20,7 @@ from typing import Optional, Dict, List, Any, Tuple, Union, BinaryIO, TextIO, IO
 # from aworld.utils import import_package
 # from aworld.logs.util import logger
 
-from ...server_logging import get_logger
+from server_logging import get_logger
 
 logger = get_logger(__name__)
 

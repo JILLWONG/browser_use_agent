@@ -1,4 +1,12 @@
 """FastAPI Browser Use API routes."""
+import os
+import sys
+parent_dir = os.path.dirname(os.path.abspath(__file__))
+up_dir = parent_dir
+for i in range(3):
+    sys.path.append(up_dir)
+    up_dir = os.path.dirname(up_dir)
+import utils as u
 
 import json
 import os
@@ -22,6 +30,7 @@ metrics_collector = get_metrics_collector()
 
 import visual.utils as u
 from visual.rollout.browser_agent import BrowserAgent
+from visual.llm_service.ais_qwen import KevinAISQwen
 
 class ModeEnum(str, Enum):
     SOM = 'som'
@@ -148,6 +157,16 @@ async def process_browser_request(
         use_inner_chrome = browser_request.use_inner_chrome
         google_api_key = browser_request.google_api_key
         google_search_engine_id = browser_request.google_search_engine_id   
+
+        kq_config = {
+            'api_key': api_key,
+            'model': model_name,
+            'base_url': base_url,
+            'temperature': temperature,
+            'max_tokens': 4096,
+        }
+
+        kq = KevinAISQwen(kq_config)
 
         config = {
             'llm_request': kq.infer,
