@@ -20,6 +20,8 @@ browser_router_v = APIRouter(prefix="/browser_v", tags=["browser_v"])
 logger = get_logger(__name__)
 metrics_collector = get_metrics_collector()
 
+import visual.utils as u
+from visual.rollout.browser_agent import BrowserAgent
 
 class ModeEnum(str, Enum):
     SOM = 'som'
@@ -147,6 +149,13 @@ async def process_browser_request(
         google_api_key = browser_request.google_api_key
         google_search_engine_id = browser_request.google_search_engine_id   
 
+        ba_config = {
+            'llm_request': kq.infer,
+            'main_path': f'{u.get_nas()}/gui_dataset/playwright/',
+            'max_step': 30,
+        }
+
+        ba = BrowserAgent()
 
         tarce_info_dict = {"question": question, "agent_answer": answer_dict}
         
