@@ -129,6 +129,7 @@ class BrowserAgent():
             img_io = io.BytesIO(img_bytes)
             img = Image.open(img_io)
             action_info = self.infer(task, action_desc_histories, img)
+            logger.info(action_info)
             answers[i_step] = action_info
             answers[i_step]['img_bytes'] = img_bytes
             pred_action_history = action_info['pred_action_history']

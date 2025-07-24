@@ -6,7 +6,7 @@ for i in range(3):
     sys.path.append(up_dir)
     up_dir = os.path.dirname(up_dir)
 from kutils import DEBUG, INFO, WARN, ERROR
-import utils as u
+import visual.utils as u
 from infer_utils import parse_type
 from dataset_utils import find4, find2
 
