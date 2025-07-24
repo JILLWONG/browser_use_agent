@@ -6,7 +6,6 @@ up_dir = parent_dir
 for i in range(3):
     sys.path.append(up_dir)
     up_dir = os.path.dirname(up_dir)
-import utils as u
 
 import json
 import os
@@ -20,15 +19,14 @@ from pydantic import BaseModel, ValidationError
 from enum import Enum
 import random
 
-from ...metrics import get_metrics_collector
-from ...server_logging import get_logger
-from ..utils import get_a_trace_with_img, get_oss_client, save_trace_in_oss, list_traces, get_traces_from_oss
+from metrics import get_metrics_collector
+from server_logging import get_logger
+from browser_use_v.utils import get_a_trace_with_img, get_oss_client, save_trace_in_oss, list_traces, get_traces_from_oss
 
 browser_router_v = APIRouter(prefix="/browser_v", tags=["browser_v"])
 logger = get_logger(__name__)
 metrics_collector = get_metrics_collector()
 
-import visual.utils as u
 from visual.rollout.browser_agent import BrowserAgent
 from visual.llm_service.ais_qwen import KevinAISQwen
 
@@ -170,24 +168,26 @@ async def process_browser_request(
 
         config = {
             'llm_request': kq.infer,
-            'max_step': 30,
+            'max_step': 3,
             'start_url': 'http://www.baidu.com',
             # 'mode': 'offline',
             'mode': 'online',
-            'main_path': f'{u.get_nas()}/gui_dataset/playwright/',
+            'main_path': f'',
         }
         ba = BrowserAgent(config)
-        answers = ba.forward(question)
-
+        answers = await ba.forward(question)
        
         oss_res = {"success": False}
         if save_trace:
+            logger.info('Saving')
             oss_client=get_oss_client(oss_access_key_id, oss_access_key_secret, oss_endpoint, oss_bucket_name, True)
             if oss_client._initialized:
                 trace_dict = {"question": question, "agent_answer": answers}
                 trace_prefix="ml001/browser_agent/traces/"
+                logger.info('Saving')
                 dict_key = os.path.join(trace_prefix,trace_dir_name,trace_file_name+".json")
                 result = oss_client.upload_data(trace_dict, dict_key)
+                logger.info(result)
             logger.info(f"oss_res: {oss_res}")
         
     except Exception as e:
