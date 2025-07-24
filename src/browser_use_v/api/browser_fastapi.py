@@ -149,23 +149,26 @@ async def process_browser_request(
         google_api_key = browser_request.google_api_key
         google_search_engine_id = browser_request.google_search_engine_id   
 
-        ba_config = {
+        config = {
             'llm_request': kq.infer,
-            'main_path': f'{u.get_nas()}/gui_dataset/playwright/',
             'max_step': 30,
+            'start_url': 'http://www.baidu.com',
+            # 'mode': 'offline',
+            'mode': 'online',
+            'main_path': f'{u.get_nas()}/gui_dataset/playwright/',
         }
+        ba = BrowserAgent(config)
+        answers = ba.forward(question)
 
-        ba = BrowserAgent()
-
-        tarce_info_dict = {"question": question, "agent_answer": answer_dict}
-        
+       
         oss_res = {"success": False}
         if save_trace:
             oss_client=get_oss_client(oss_access_key_id, oss_access_key_secret, oss_endpoint, oss_bucket_name, True)
             if oss_client._initialized:
-                save_path=save_trace_in_oss(agent_history, tarce_info_dict, oss_client, trace_dir_name, trace_file_name)
-                oss_res["success"] = True if save_path else False
-                oss_res["path"] = save_path
+                trace_dict = {"question": question, "agent_answer": answers}
+                trace_prefix="ml001/browser_agent/traces/"
+                dict_key = os.path.join(trace_prefix,trace_dir_name,trace_file_name+".json")
+                result = oss_client.upload_data(trace_dict, dict_key)
             logger.info(f"oss_res: {oss_res}")
         
     except Exception as e:

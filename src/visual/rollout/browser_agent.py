@@ -109,7 +109,7 @@ class BrowserAgent():
         i_step = 0
         pred_action_type = ''
         tabs = {}
-        actions = {}
+        answers = {}
         action_desc_histories = []
         while pred_action_type != 'FINISH':
             pages = context.pages
@@ -125,7 +125,8 @@ class BrowserAgent():
             img_io = io.BytesIO(img_bytes)
             img = Image.open(img_io)
             action_info = self.infer(task, action_desc_histories, img)
-            actions[i_step] = action_info
+            answers[i_step] = action_info
+            answers[i_step]['img_bytes'] = img_bytes
             pred_action_history = action_info['pred_action_history']
             pred_action_description = action_info['pred_action_description']
             pred_action = action_info['pred_action']
@@ -137,7 +138,7 @@ class BrowserAgent():
             if self.mode == 'offline':
                 ori_file = f'{ori_img_path}/ori_{i_step}.png'
                 img.save(ori_file)
-                u.write_json(actions_file, actions)
+                u.write_json(actions_file, answers)
                 pred_file = f'{pred_img_path}/pred_{i_step}.png'
                 draw_eval(img, pred_click_point, task, '', pred_action, '', pred_action_description, pred_file)
 
@@ -151,4 +152,4 @@ class BrowserAgent():
 
         self.browser.close()
         self.p.stop()
-        return img_bytes, actions
+        return answers 

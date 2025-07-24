@@ -67,8 +67,8 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
 def get_a_trace_without_img():
     pass
 
-def save_trace_in_oss(agent_history, tarce_info_dict, oss_client, trace_dir_name, trace_file_name):
-    trace_dict=get_a_trace_with_img(agent_history, tarce_info_dict)
+def save_trace_in_oss(agent_history, trace_info_dict, oss_client, trace_dir_name, trace_file_name):
+    trace_dict=get_a_trace_with_img(agent_history, trace_info_dict)
     trace_prefix="ml001/browser_agent/traces/"
     dict_key = os.path.join(trace_prefix,trace_dir_name,trace_file_name+".json")
     result = oss_client.upload_data(trace_dict, dict_key)
