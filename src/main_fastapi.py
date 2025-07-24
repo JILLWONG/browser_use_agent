@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .browser_use.api.browser_fastapi import browser_router
+from .browser_use_v.api.browser_fastapi import browser_router_v
 from .config import get_settings
 from .openrouter.api.llm_fastapi import openrouter_router
 from .rag.api.health_fastapi import health_router
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(openrouter_router)
     app.include_router(browser_router)
+    app.include_router(browser_router_v)
 
     # Add request ID middleware
     @app.middleware("http")
