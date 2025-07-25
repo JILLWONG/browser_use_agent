@@ -8,6 +8,7 @@ for i in range(3):
 from kutils import DEBUG, INFO, WARN, ERROR
 import visual.utils as u
 from tqdm import tqdm
+import subprocess
 from PIL import Image
 import io
 from playwright.async_api import async_playwright
@@ -44,6 +45,43 @@ async def pw_back(page):
     else:
         await page.close()
 
+
+def run_chrome_debug_mode(browser_port, user_data_dir, headless):
+    browser_locate = "/usr/bin/google-chrome"
+    try:
+        command = [
+            browser_locate,
+            f"--remote-debugging-port={browser_port}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            f"--user-data-dir={user_data_dir}",
+            "--no-sandbox",
+            # "--headless",  # 启用无头模式
+            # "--disable-gpu",  # 禁用 GPU 加速（可选）
+            # "--window-size=1920,1080"  # 设置窗口大小（可选）
+        ]
+        if headless:
+            command.append("--headless")
+        process = subprocess.Popen(command)
+    except Exception as e:
+        print(e)
+        browser_locate = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        command = [
+            browser_locate,
+            f"--remote-debugging-port={browser_port}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            f"--user-data-dir={user_data_dir}",
+            "--no-sandbox",
+            # "--headless",  # 启用无头模式
+            # "--disable-gpu",  # 禁用 GPU 加速（可选）
+            # "--window-size=1920,1080"  # 设置窗口大小（可选）
+        ]
+        if headless:
+            command.append("--headless")
+        process = subprocess.Popen(command)
+    return browser_locate, process
+
 class BrowserAgent():
     def __init__(self, config):
         self.llm_request = config['llm_request']
@@ -51,6 +89,9 @@ class BrowserAgent():
         self.main_path = config['main_path']
         self.max_step = config['max_step']
         self.start_url = config['start_url']
+        self.browser_port = config['browser_port']
+        self.user_data_dir = config['user_data_dir']
+        self.headless = config['headless']
 
     async def execute_action(self, page, context, action_info, img_size):
         w, h = img_size
@@ -85,10 +126,6 @@ class BrowserAgent():
         return action_info
 
     async def forward(self, task):
-        self.p = await async_playwright().start()
-        self.browser = await self.p.chromium.launch()
-        await self.browser.new_page()
-
         folder_name = task.replace(' ', '_').replace('?', '')[:20]
         task_path = f'{self.main_path}/{folder_name}/'
         ori_img_path = f'{task_path}/ori_img/'
@@ -101,63 +138,79 @@ class BrowserAgent():
             u.mkdir(task_path)
             u.mkdir(pred_img_path)
 
-        context = self.browser.contexts[0]
-        # context = self.p.chromium.launch_persistent_context(
-        #     user_data_dir=f'{self.main_path}/user_data/',
-        #     headless=False
-        # )
-        curr_page = context.pages[-1]
-        await curr_page.goto(self.start_url)
+        async with async_playwright() as p:
+            # p = await async_playwright().start()
+            # browser_locate, chrome_process = run_chrome_debug_mode(self.browser_port, self.user_data_dir, self.headless)
+            logger.info(self.browser_port)
+            browser_locate, chrome_process = run_chrome_debug_mode(self.browser_port, self.user_data_dir, False)
+            logger.info(self.browser_port)
+            browser = await p.chromium.connect_over_cdp(f'http://localhost:{self.browser_port}')
+            logger.info(self.browser_port)
 
-        i_step = 0
-        pred_action_type = ''
-        tabs = {}
-        answers = {}
-        action_desc_histories = []
-        while pred_action_type != 'FINISH':
-            logger.info(i_step)
-            pages = context.pages
-            n_tabs = len(pages)
-            curr_page = pages[-1]
-            for page in pages:
-                title = await page.title()
-                if i_step not in tabs.keys(): tabs[i_step] = []
-                tabs[i_step].append(title)
+            # self.browser = await self.p.chromium.launch()
+            # await self.browser.new_page()
 
-            img_bytes = await curr_page.screenshot()
-            if not isinstance(img_bytes, bytes): continue
-            img_io = io.BytesIO(img_bytes)
-            img = Image.open(img_io)
-            action_info = self.infer(task, action_desc_histories, img)
-            logger.info(action_info)
-            answers[i_step] = action_info
-            answers[i_step]['img_bytes'] = img_bytes
-            pred_action_history = action_info['pred_action_history']
-            pred_action_description = action_info['pred_action_description']
-            pred_action = action_info['pred_action']
-            logger.info(pred_action)
-            pred_action_type = action_info['pred_action_type']
-            pred_bbox = action_info['pred_bbox']
-            pred_type_value = action_info['pred_type_value']
-            pred_click_point = action_info['pred_click_point']
+            # context = self.browser.contexts[0]
+            # context = self.p.chromium.launch_persistent_context(
+            #     user_data_dir=f'{self.main_path}/user_data/',
+            #     headless=False
+            # )
 
-            if self.mode == 'offline':
-                ori_file = f'{ori_img_path}/ori_{i_step}.png'
-                img.save(ori_file)
-                u.write_json(actions_file, answers)
-                pred_file = f'{pred_img_path}/pred_{i_step}.png'
-                draw_eval(img, pred_click_point, task, '', pred_action, '', pred_action_description, pred_file)
+            contexts = browser.contexts
+            context = contexts[0] if contexts else browser.new_context()
+            page = context.new_page()
+            curr_page = context.pages[-1]
+            await curr_page.goto(self.start_url)
 
-            if pred_action_type == 'FINISH': return pred_type_value
-            await self.execute_action(curr_page, context, action_info, img.size)
+            i_step = 0
+            pred_action_type = ''
+            tabs = {}
+            answers = {}
+            action_desc_histories = []
+            while pred_action_type != 'FINISH':
+                logger.info(i_step)
+                pages = context.pages
+                n_tabs = len(pages)
+                curr_page = pages[-1]
+                for page in pages:
+                    title = await page.title()
+                    if i_step not in tabs.keys(): tabs[i_step] = []
+                    tabs[i_step].append(title)
 
-            i_step += 1
-            if i_step > self.max_step: return ''
+                img_bytes = await curr_page.screenshot()
+                if not isinstance(img_bytes, bytes): continue
+                img_io = io.BytesIO(img_bytes)
+                img = Image.open(img_io)
+                action_info = self.infer(task, action_desc_histories, img)
+                logger.info(action_info)
+                answers[i_step] = action_info
+                answers[i_step]['img_bytes'] = img_bytes
+                pred_action_history = action_info['pred_action_history']
+                pred_action_description = action_info['pred_action_description']
+                pred_action = action_info['pred_action']
+                logger.info(pred_action)
+                pred_action_type = action_info['pred_action_type']
+                pred_bbox = action_info['pred_bbox']
+                pred_type_value = action_info['pred_type_value']
+                pred_click_point = action_info['pred_click_point']
 
-            action_desc_histories.append(pred_action_description)
-            logger.info(action_desc_histories)
-            
-        logger.info('End')
-        self.browser.close()
-        self.p.stop()
+                if self.mode == 'offline':
+                    ori_file = f'{ori_img_path}/ori_{i_step}.png'
+                    img.save(ori_file)
+                    u.write_json(actions_file, answers)
+                    pred_file = f'{pred_img_path}/pred_{i_step}.png'
+                    draw_eval(img, pred_click_point, task, '', pred_action, '', pred_action_description, pred_file)
+
+                if pred_action_type == 'FINISH': return pred_type_value
+                await self.execute_action(curr_page, context, action_info, img.size)
+
+                i_step += 1
+                if i_step > self.max_step: return ''
+
+                action_desc_histories.append(pred_action_description)
+                logger.info(action_desc_histories)
+                
+            logger.info('End')
+            browser.close()
+
         return answers 

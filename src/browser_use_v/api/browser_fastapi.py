@@ -173,6 +173,9 @@ async def process_browser_request(
             # 'mode': 'offline',
             'mode': 'online',
             'main_path': f'',
+            'browser_port': browser_port,
+            'user_data_dir': user_data_dir,
+            'headless': headless,
         }
         ba = BrowserAgent(config)
         answers = await ba.forward(question)
