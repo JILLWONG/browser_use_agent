@@ -84,43 +84,6 @@ def get_request_id(request: Request) -> str:
     return getattr(request.state, "request_id", "unknown")
 
 
-def run_chrome_debug_mode(browser_port, user_data_dir, headless):
-    browser_locate = "/usr/bin/google-chrome"
-    try:
-        command = [
-            browser_locate,
-            f"--remote-debugging-port={browser_port}",
-            "--no-first-run",
-            "--no-default-browser-check",
-            f"--user-data-dir={user_data_dir}",
-            "--no-sandbox",
-            # "--headless",  # 启用无头模式
-            # "--disable-gpu",  # 禁用 GPU 加速（可选）
-            # "--window-size=1920,1080"  # 设置窗口大小（可选）
-        ]
-        if headless:
-            command.append("--headless")
-        process = subprocess.Popen(command)
-    except Exception as e:
-        print(e)
-        browser_locate = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        command = [
-            browser_locate,
-            f"--remote-debugging-port={browser_port}",
-            "--no-first-run",
-            "--no-default-browser-check",
-            f"--user-data-dir={user_data_dir}",
-            "--no-sandbox",
-            # "--headless",  # 启用无头模式
-            # "--disable-gpu",  # 禁用 GPU 加速（可选）
-            # "--window-size=1920,1080"  # 设置窗口大小（可选）
-        ]
-        if headless:
-            command.append("--headless")
-        process = subprocess.Popen(command)
-    return browser_locate, process
-
-
 async def process_browser_request(
     browser_request: BrowserAgentRequest, request_id: str = Depends(get_request_id)
 ):
@@ -176,6 +139,8 @@ async def process_browser_request(
             'browser_port': browser_port,
             'user_data_dir': user_data_dir,
             'headless': headless,
+            'window_width': window_width,
+            'window_height': window_height,
         }
         ba = BrowserAgent(config)
         answers = await ba.forward(question)
