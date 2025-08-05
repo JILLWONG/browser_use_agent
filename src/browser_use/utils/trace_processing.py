@@ -6,6 +6,9 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
     history_model_li=agent_history.history
 
     task_id=tarce_info_dict.get("task_id","")
+    start_time=tarce_info_dict.get("start_time",-1)
+    end_time=tarce_info_dict.get("end_time",-1)
+    cost_second=tarce_info_dict.get("cost_second",-1)
     level=tarce_info_dict.get("level","")
     question=tarce_info_dict.get("question","")
     ground_truth=tarce_info_dict.get("ground_truth","")
@@ -14,7 +17,7 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
     final_answer=tarce_info_dict.get("final_answer","")
     score_em=tarce_info_dict.get("score_em",False)
 
-    trace_dict={"task_id":task_id,"level":level,"question":question,"ground_truth":ground_truth}
+    trace_dict={"task_id":task_id,"level":level,"question":question,"ground_truth":ground_truth,"start_time":start_time,"end_time":end_time,"cost_second":cost_second}
 
     conversations=[]
     for idx,history_model in enumerate(history_model_li):
@@ -22,6 +25,7 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
         if a_step["result"][-1]["error"] !=None:
             continue
         screenshot=a_step["state"]["screenshot"]
+        screenshot_no_highlights=a_step["state"]["screenshot_no_highlights"]
         action_li=[]
         for action in history_model.model_output.action:
             action_dict=json.loads(action.model_dump_json())
@@ -35,6 +39,7 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
                 "content":{
                     "text":question,
                     "image":screenshot,
+                    "screenshot_no_highlights":screenshot_no_highlights,
                     "snapshot":a_step["snapshot"]
                 }
             }
@@ -44,6 +49,7 @@ def get_a_trace_with_img(agent_history, tarce_info_dict):
                 "content":{
                     "text":"<image>",
                     "image":screenshot,
+                    "screenshot_no_highlights":screenshot_no_highlights,
                     "snapshot":a_step["snapshot"]
                 }
             }
@@ -74,6 +80,15 @@ def save_trace_in_oss(agent_history, tarce_info_dict, oss_client, trace_dir_name
     result = oss_client.upload_data(trace_dict, dict_key)
     print(f"Upload trace data: {'Success: ' + result if result else 'Failed'}")
     return result
+
+def save_trace_in_local(agent_history, tarce_info_dict, trace_dir_name, a_trace_file_name):
+    trace_dict=get_a_trace_with_img(agent_history, tarce_info_dict)
+    trace_prefix="/Users/zhuige/Documents/llm/agent/projects/online_browser/aworld-mcp-servers/datas/traces"
+    if not os.path.exists(os.path.join(trace_prefix,trace_dir_name)):
+        os.makedirs(os.path.join(trace_prefix,trace_dir_name))
+    dict_key = os.path.join(trace_prefix,trace_dir_name,a_trace_file_name+".json")
+    with open(dict_key,"w",encoding="utf-8") as f:
+        json.dump(trace_dict,f,ensure_ascii=False,indent=4)
 
 def list_traces(oss_client, trace_file_dir):
     trace_prefix="ml001/browser_agent/traces/"

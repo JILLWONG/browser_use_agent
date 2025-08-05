@@ -261,3 +261,8 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+datas/
+browser-use/docs/
+browser-use/eval/
+browser-use/static/

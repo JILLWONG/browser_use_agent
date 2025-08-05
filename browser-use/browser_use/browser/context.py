@@ -359,7 +359,7 @@ class BrowserContext:
 		# Bring page to front
 		logger.debug('🫨  Bringing tab to front: %s', current_page)
 		await current_page.bring_to_front()
-		await current_page.wait_for_load_state('load')
+		await current_page.wait_for_load_state('load',timeout=10)
 
 		# Set the viewport size for the active page
 		await self.set_viewport_size(current_page)
@@ -1178,6 +1178,13 @@ class BrowserContext:
 
 		try:
 			await self.remove_highlights()
+
+			try:
+				screenshot_no_highlights_b64 = await self.take_screenshot()
+			except Exception as e:
+				logger.debug(f'⚠  Failed to take screenshot without highlights (this is usually ok): {str(e)}')
+				screenshot_no_highlights_b64 = None
+
 			dom_service = DomService(page)
 			content = await dom_service.get_clickable_elements(
 				focus_element=focus_element,
@@ -1225,6 +1232,7 @@ class BrowserContext:
 				title=await page.title(),
 				tabs=tabs_info,
 				screenshot=screenshot_b64,
+				screenshot_no_highlights=screenshot_no_highlights_b64,
 				pixels_above=pixels_above,
 				pixels_below=pixels_below,
 			)
@@ -1253,6 +1261,7 @@ class BrowserContext:
 			full_page=full_page,
 			animations='disabled',
 			caret='initial',
+			timeout=8000,
 		)
 
 		screenshot_b64 = base64.b64encode(screenshot).decode('utf-8')

@@ -10,9 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .browser_use.api.browser_fastapi import browser_router
 from .config import get_settings
-from .openrouter.api.llm_fastapi import openrouter_router
-from .rag.api.health_fastapi import health_router
-from .rag.api.search_fastapi import search_router
 from .server_logging import get_logger, setup_logging
 
 
@@ -57,9 +54,6 @@ def create_app() -> FastAPI:
     )
 
     # Include routers
-    app.include_router(health_router)
-    app.include_router(search_router)
-    app.include_router(openrouter_router)
     app.include_router(browser_router)
 
     # Add request ID middleware
@@ -94,13 +88,18 @@ def main() -> None:
     """Main entry point for the FastAPI application."""
     settings = get_settings()
 
+    # settings.debug = True
     uvicorn.run(
         "src.main_fastapi:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug,
-        workers=1 if settings.debug else 4,
+        workers=1 if settings.debug else 2,
+        # workers=1,
         log_level=settings.log_level.lower(),
+        # log_level="debug",
+        # limit_max_requests=4,
+        # limit_concurrency=1,  # 限制每个进程最大并发请求数
     )
 
 

@@ -75,7 +75,7 @@ class Controller(Generic[Context]):
 					if isinstance(value, enum.Enum):
 						output_dict[key] = value.value
 
-				return ActionResult(is_done=True, success=params.success, extracted_content=json.dumps(output_dict))
+				return ActionResult(is_done=True, success=params.success, extracted_content=json.dumps(output_dict,ensure_ascii=False))
 		else:
 
 			@self.registry.action(
@@ -209,6 +209,15 @@ class Controller(Generic[Context]):
 				raise Exception(f'Element with index {params.index} does not exist - retry or use alternative actions')
 
 			element_node = await browser.get_dom_element_by_index(params.index)
+			x, y, width, height = None, None, None, None
+			try:
+				element_handle = await browser.get_element_by_index(params.index)
+				box = await element_handle.bounding_box()
+				x, y, width, height = box['x'], box['y'], box['width'], box['height']
+			except Exception as e:
+				logger.warning(f'Element with index {params.index} is not visible or has no bounding box')
+
+			
 			initial_pages = len(session.context.pages)
 
 			# if element has file uploader then dont click
@@ -224,10 +233,14 @@ class Controller(Generic[Context]):
 				if download_path:
 					msg = f'💾  Downloaded file to {download_path}'
 				else:
-					msg = f'🖱️  Clicked button with index {params.index}: {element_node.get_all_text_till_next_clickable_element(max_depth=2)}'
+					if x is None:
+						msg = f'🖱️  Clicked button with index {params.index}: {element_node.get_all_text_till_next_clickable_element (max_depth=2)}'
+					else:
+						msg = f'🖱️  Clicked button with index {params.index}: {element_node.get_all_text_till_next_clickable_element (max_depth=2)} (x:{x}, y:{y}, width:{width}, height:{height})'
 
 				logger.info(msg)
 				logger.debug(f'Element xpath: {element_node.xpath}')
+				await browser._wait_for_page_and_frames_load()
 				if len(session.context.pages) > initial_pages:
 					new_tab_msg = 'New tab opened - switching to it'
 					msg += f' - {new_tab_msg}'
@@ -247,9 +260,20 @@ class Controller(Generic[Context]):
 				raise Exception(f'Element index {params.index} does not exist - retry or use alternative actions')
 
 			element_node = await browser.get_dom_element_by_index(params.index)
+			x, y, width, height = None, None, None, None
+			try:
+				element_handle = await browser.get_element_by_index(params.index)
+				box = await element_handle.bounding_box()
+				x, y, width, height = box['x'], box['y'], box['width'], box['height']
+			except Exception as e:
+				logger.warning(f'Element with index {params.index} is not visible or has no bounding box')
+
 			await browser._input_text_element_node(element_node, params.text)
 			if not has_sensitive_data:
-				msg = f'⌨️  Input {params.text} into index {params.index}'
+				if x is None:
+					msg = f'⌨️  Input {params.text} into index {params.index}'
+				else:
+					msg = f'⌨️  Input {params.text} into index {params.index} (x:{x}, y:{y}, width:{width}, height:{height})'
 			else:
 				msg = f'⌨️  Input sensitive data into index {params.index}'
 			logger.info(msg)
@@ -974,6 +998,7 @@ class Controller(Generic[Context]):
 				await page.mouse.click(center_x, center_y)
 				await page.wait_for_load_state()
 				msg = f'🖱️  Clicked element at ({center_x}, {center_y})'
+				await browser._wait_for_page_and_frames_load()
 				if len(session.context.pages) > initial_pages:
 					new_tab_msg = 'New tab opened - switching to it'
 					msg += f' - {new_tab_msg}'
