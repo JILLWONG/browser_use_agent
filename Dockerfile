@@ -61,6 +61,8 @@ RUN apt update -y
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 RUN apt install ./google-chrome-stable_current_amd64.deb
 
+# Install dbus
+RUN apt-get update && apt-get install -y dbus
 # Set up dbus
 RUN mkdir -p /run/dbus
 ENV DBUS_SESSION_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
