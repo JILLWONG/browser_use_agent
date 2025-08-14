@@ -28,7 +28,7 @@ RUN apt-get update && \
         libxcursor1 \
         libxi6 \
         libxss1 \
-        libgl1-mesa-glx \
+        libgl1-mesa-dri \
         xdg-utils \
         xvfb \
         wget \
@@ -38,7 +38,6 @@ RUN apt-get update && \
         dpkg \
         apt-transport-https \
         ca-certificates \
-        software-properties-common \
         dbus-x11 \
         curl && \
     rm -rf /var/lib/apt/lists/* && \
