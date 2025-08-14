@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .browser_use.api.browser_fastapi import browser_router
 from .config import get_settings
+from .search.api import search_router
 from .server_logging import get_logger, setup_logging
 
 
+# pylint: disable=W0613
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management."""
@@ -55,6 +57,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(browser_router)
+    app.include_router(search_router)
 
     # Add request ID middleware
     @app.middleware("http")
@@ -96,7 +99,7 @@ def main() -> None:
         reload=settings.debug,
         workers=1 if settings.debug else 2,
         # workers=1,
-        log_level=settings.log_level.lower(),
+        log_level=str(settings.log_level).lower(),
         # log_level="debug",
         # limit_max_requests=4,
         # limit_concurrency=1,  # 限制每个进程最大并发请求数
