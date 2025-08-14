@@ -72,7 +72,7 @@ dev = [
 ]
 
 [project.scripts]
-browser-fastapi = "src.main_fastapi:main"
+main-fastapi = "src.main_fastapi:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -93,4 +93,4 @@ RUN playwright install
 EXPOSE ${SEARCH_PORT}
 
 # Use uv to run the application
-CMD ["uv", "run", "browser-fastapi"]
+CMD ["uv", "run", "main-fastapi"]
